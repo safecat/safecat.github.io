@@ -1,0 +1,118 @@
+<!doctype html>
+<meta name="viewport" content="width=320px, initial-scale=1">
+<meta charset="utf8">
+<style>
+table,tr,td,th{border:1px solid #ccc; border-collapse: collapse;}
+</style>
+<script src="http://cdn.staticfile.org/zepto/1.1.4/zepto.min.js"></script>
+<div id="map" style="width:100%; height:200px;"></div>
+<table id="record">
+  <thead>
+    <th>纬度</th>
+    <th>经度</th>
+    <th>精度（米）</th>
+    <th>海拔</th>
+    <th>精度</th>
+    <th>方向</th>
+    <th>速度</th>
+    <th>时间（差/秒）</th>
+    <th>距离（差/米）</th>
+  </thead>
+  <tbody></tbody>
+</table>
+<script language="javascript" src="http://webapi.amap.com/maps?v=1.3&key=32b1fa9eb78b96418799aed124f7cb93"></script>
+<script>
+var mapObj,polyline;
+mapObj = new AMap.Map("map",{
+    zoom:16 //地图显示的缩放级别
+});
+mapObj.plugin(["AMap.ToolBar"],function(){    
+  toolBar = new AMap.ToolBar();
+  mapObj.addControl(toolBar);   
+});
+mapObj.plugin(["AMap.Scale"],function(){    
+  scale = new AMap.Scale();
+  mapObj.addControl(scale);
+});
+marker = new AMap.Marker({          
+    icon:"http://webapi.amap.com/images/marker_sprite.png",
+    position:new AMap.LngLat(116.405467,39.907761)
+  });
+  marker.setMap(mapObj);  //在地图上添加点
+circle = new AMap.Circle({ 
+   center:new AMap.LngLat("116.403322","39.920255"),// 圆心位置
+   radius:1000, //半径
+   strokeColor: "#F33", //线颜色
+   strokeOpacity: 1, //线透明度
+   strokeWeight: 3, //线粗细度
+   fillColor: "#ee2200", //填充颜色
+   fillOpacity: 0.35//填充透明度
+   }); 
+   circle.setMap(mapObj);
+ 
+</script>
+<script>
+var time = 0;
+getLocation();
+function getLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(showPosition, handleError,{
+          enableHighAccuracy: true,
+          maximumAge        : 60*1000
+        });
+    } else {
+        alert("Geolocation is not supported by this browser.");
+    }
+}
+function handleError(e){
+  console.log(e);
+}
+lat = 0, lng = 0;
+function showPosition(position) {
+  console.log(position);
+  var html = '';
+  html+='<tr>';
+  html+='<td>'+position.coords.latitude.toFixed(6)+'</td>';
+  html+='<td>'+position.coords.longitude.toFixed(6)+'</td>';
+  html+='<td>'+position.coords.accuracy.toFixed(2)+'</td>';
+  html+='<td>'+parseFloat(position.coords.altitude).toFixed(2)+'</td>';
+  html+='<td>'+parseFloat(position.coords.altitudeAccuracy).toFixed(2)+'</td>';
+  html+='<td>'+parseFloat(position.coords.heading).toFixed(2)+'</td>';
+  html+='<td>'+parseFloat(position.coords.speed).toFixed(4)+'</td>';
+  html+='<td>'+((position.timestamp-time)/1000).toFixed(3)+'</td>';
+  // html+='<td>'+(distance(position.coords.latitude.toFixed(6), position.coords.longitude.toFixed(6), lat, lng, 'K')*1000).toFixed(3)+'</td>';
+  html+='</tr>';
+  // alert(html);
+  // alert(document.getElementById('record'));
+  time = position.timestamp;
+  lat = position.coords.latitude.toFixed(6);
+  lng = position.coords.longitude.toFixed(6);
+
+  marker.setPosition(new AMap.LngLat(lng, lat));
+  mapObj.setCenter(new AMap.LngLat(lng, lat));
+  circle.setCenter(new AMap.LngLat(lng, lat));
+  circle.setRadius(position.coords.accuracy.toFixed(2));
+
+
+  $('tbody').html($('tbody').html()+html);
+}
+function distance(lat1, lon1, lat2, lon2, unit) {
+  lat1 = parseFloat(lat1);
+  lon1 = parseFloat(lon1);
+  lat2 = parseFloat(lat2);
+  lon2 = parseFloat(lon2);
+  var radlat1 = Math.PI * lat1/180
+  var radlat2 = Math.PI * lat2/180
+  var radlon1 = Math.PI * lon1/180
+  var radlon2 = Math.PI * lon2/180
+  var theta = lon1-lon2
+  var radtheta = Math.PI * theta/180
+  var dist = Math.sin(radlat1) * Math.sin(radlat2) + Math.cos(radlat1) * Math.cos(radlat2) * Math.cos(radtheta);
+  dist = Math.acos(dist)
+  dist = dist * 180/Math.PI
+  dist = dist * 60 * 1.1515
+  if (unit=="K") { dist = dist * 1.609344 }
+  if (unit=="N") { dist = dist * 0.8684 }
+  return dist
+}  
+</script>
